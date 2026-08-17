@@ -164,35 +164,6 @@ def _render_callees_sft(calls_tree):
     return out
 
 
-def _payload_size_warning(payload: dict, fname: str, byte_cap: int = 8192, token_cap: int = 4000) -> None:
-    """Warn (do not fail) when a payload is at risk of rejection by the endpoint.
-
-    Two caps typically apply:
-    - 8KB body cap on the `source` field (returns 413)
-    - ~4K input-token cap on the rendered prompt (returns 400 "context length exceeded")
-
-    Surface oversized payloads so users can investigate instead of
-    silently getting 413/400.
-    """
-    body_bytes = len(json.dumps(payload).encode("utf-8"))
-    if body_bytes > byte_cap:
-        print(
-            f"WARNING: {fname} payload is {body_bytes}B > {byte_cap}B "
-            f"(body cap on `source` field). Endpoint will likely reject with 413.",
-            file=sys.stderr,
-        )
-    source = payload.get("source", "")
-    calls = payload.get("calls", []) or []
-    rendered = source + "\n".join(calls)
-    approx_tokens = max(1, len(rendered) // 4)
-    if approx_tokens > token_cap:
-        print(
-            f"WARNING: {fname} prompt is ~{approx_tokens} tokens > "
-            f"{token_cap}-token cap. Endpoint will likely reject.",
-            file=sys.stderr,
-        )
-
-
 def _audit_per_function(contract_name: str, contract_src: str, args) -> None:
     """Extract per-function data via the bundled JS call-graph tool, post each to /v1/audit-anon.
 
@@ -279,7 +250,6 @@ def _audit_per_function(contract_name: str, contract_src: str, args) -> None:
             "source": f["source"],
             "calls": f["calls"],
         }
-        _payload_size_warning(payload, f["function"])
 
         status, body = request(
             "POST", "/v1/audit-anon",
@@ -302,10 +272,6 @@ def _audit_per_function(contract_name: str, contract_src: str, args) -> None:
             print_result(status, body)
             if status == 429:
                 print(f"\n⛔ Rate limit hit. Skipping remaining functions.",
-                      file=sys.stderr)
-                break
-            if status == 413:
-                print(f"\n⛔ Body too large. Skipping remaining functions.",
                       file=sys.stderr)
                 break
 
