@@ -31,21 +31,15 @@ cd solidity-graph && npm install && cd ..
 
 The CLI itself is **stdlib-only** — no `pip install` needed.
 
-### 2. Point at your endpoint
-
-```bash
-export MODEL_ALPHA_URL=https://<your-deployment>/<endpoint-name>
-```
-
-The CLI ships with no built-in default — this skill is the client, you provide the endpoint.
-
-### 3. Audit a contract
+### 2. Audit a contract (zero configuration)
 
 ```bash
 python3 scripts/model_alpha_cli.py audit --contract ./Vault.sol
 # or pipe via stdin
 cat Vault.sol | python3 scripts/model_alpha_cli.py audit --stdin
 ```
+
+The CLI ships with a built-in default endpoint — no env vars or API keys needed. Override via `MODEL_ALPHA_URL` or `--url` if you point your own deployment.
 
 Output: one block per function with the assistant's reasoning + verdict. A summary line at the end:
 
@@ -134,7 +128,7 @@ cd solidity-graph && npm install && cd ..
 ## Pitfalls
 
 1. **Node.js is required.** The CLI shells out to `node -e` against the bundled `.js`. Without node, the CLI fails fast with a clear error.
-2. **The CLI does not ship with a default `MODEL_ALPHA_URL`.** You must point it at your own deployment. Auth, rate limiting, and the upstream model are the endpoint's concern.
+2. **The CLI ships with a built-in portal URL** — zero configuration needed. Override at any time via `$MODEL_ALPHA_URL` or `--url` if you point your own deployment.
 3. **Empty `<fallback>` functions are skipped.** The JS tool may return a function entry with no source for unresolved super-class calls — the CLI drops those silently rather than POSTing an empty `source`.
 4. **Per-function calls are deduplicated by `(type, name)`.** The recursive tree may revisit the same callee through multiple paths — first occurrence wins, but recursion continues to surface transitive callees.
 5. **Output budget is dictated by the endpoint.** The CLI doesn't enforce `max_tokens` — large contracts may exceed the endpoint's advertised cap and return 413/400.

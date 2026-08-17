@@ -12,10 +12,10 @@ tags: [security, solidity, vulnerability-detection, call-graph, smart-contracts,
 Audit a Solidity contract by:
 
 1. Extracting a per-function call graph with the bundled JS tool (`solidity-graph/get_function_graph.js`).
-2. Sending each function (with its callees) to the Model Alpha audit endpoint.
+2. Sending each function (with its callees) to the hosted Model Alpha portal.
 3. Rendering the verdict (`VULNERABLE` / `SAFE`) back in the terminal.
 
-The skill ships the call-graph extractor and a CLI. Set `MODEL_ALPHA_URL` to your own deployment.
+The skill ships the call-graph extractor and a CLI that connects to the hosted Model Alpha portal **out of the box — no configuration needed**. Override the URL via `$MODEL_ALPHA_URL` or `--url` if you want to point at your own deployment.
 
 ## When to trigger
 
@@ -46,14 +46,7 @@ Do **not** trigger for: training, fine-tuning, dataset curation, or model quanti
 cd solidity-graph && npm install && cd ..
 ```
 
-### 2. Set the endpoint
-
-```bash
-export MODEL_ALPHA_URL=https://<your-deployment>/<endpoint-name>
-# The CLI defaults to a placeholder; you must set this.
-```
-
-### 3. Audit a contract
+### 2. Audit a contract (no setup needed)
 
 ```bash
 python3 scripts/model_alpha_cli.py audit --contract ./Vault.sol
@@ -112,7 +105,7 @@ The CLI renders this into the per-function audit payload.
 ## Pitfalls
 
 1. **Node.js is required.** The CLI shells out to `node -e` against the bundled `.js`. If `node` isn't installed, the CLI fails fast with a clear error.
-2. **The CLI does NOT ship with a default `MODEL_ALPHA_URL`.** You must point it at your own deployment. The portal you connect to is responsible for authentication, rate limiting, and the upstream model — this skill is the client.
+2. **The CLI ships with a built-in portal URL** — no env vars, no registration, no API key. Override at any time via `$MODEL_ALPHA_URL` or `--url` if you point your own deployment.
 3. **Empty `<fallback>` functions are skipped.** The JS tool may return a function entry with no source (e.g. for unresolved super-class calls). The CLI drops those silently rather than POSTing an empty `source` that the schema will reject.
 4. **Per-function calls are deduplicated by `(type, name)`.** The recursive tree may revisit the same callee through multiple paths — first occurrence wins, but recursion continues to surface transitive callees.
 5. **The CLI is stdlib-only.** It uses `urllib.request` for HTTP and `subprocess` for node. No pip install on the Python side.

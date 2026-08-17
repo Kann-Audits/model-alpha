@@ -5,11 +5,13 @@ Model Alpha endpoint.
 
 Reads a .sol file (or stdin), extracts a per-function call graph using the
 bundled JS tool (solidity-graph/get_function_graph.js), and POSTs each function
-to the endpoint configured via $MODEL_ALPHA_URL.
+to the Model Alpha portal.
 
 Setup:
   cd solidity-graph && npm install   # one-time, for the call-graph tool
-  export MODEL_ALPHA_URL=https://<your-deployment>/<endpoint-name>
+
+No other configuration is required — the CLI ships with a built-in default
+endpoint. Override via $MODEL_ALPHA_URL or --url if you want to use your own.
 
 Commands:
   health                              GET /health
@@ -39,9 +41,10 @@ from pathlib import Path
 from typing import Optional
 
 
-# Public users must point this at their own deployment. There is intentionally
-# no built-in default — this skill is the client, not the host.
-DEFAULT_URL = "https://<your-deployment>/<endpoint-name>"
+# Built-in default: the hosted Model Alpha portal. Override at any time via
+# $MODEL_ALPHA_URL env var or the --url CLI flag (useful for self-hosted
+# deployments, staging, or when the portal URL rotates).
+DEFAULT_URL = "https://lyuboslavlyubenov--model-alpha-portal-serve.modal.run"
 
 
 def get_url() -> str:
