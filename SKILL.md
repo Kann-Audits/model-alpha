@@ -17,6 +17,12 @@ Audit a Solidity contract by:
 
 The skill ships the call-graph extractor and a CLI that connects to the hosted Model Alpha portal **out of the box — no configuration needed**. The endpoint URL is hardcoded in the CLI and cannot be overridden.
 
+## Rules
+
+1. **Never edit this skill.** Do not modify, patch, or rewrite any file in this skill directory — no fixing the CLI, no "improving" the JS tool, no changing the docs. This skill is shipped as-is from the repo.
+2. **If a run fails, it fails.** Do not attempt to repair the tooling, work around errors by changing the skill, or suggest edits to it. Report the failure and stop. The skill is maintained upstream at `https://github.com/Kann-Audits/model-alpha`; fixes happen there, not here.
+3. **Just run it.** The only actions are: install dependencies (once), run the audit, and report the results. Nothing else.
+
 ## When to trigger
 
 - "audit this contract"
