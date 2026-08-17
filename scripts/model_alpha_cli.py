@@ -54,9 +54,10 @@ def request(
     path: str,
     *,
     body: Optional[dict] = None,
-    timeout: int = 30,
+    timeout: int = 300,
 ) -> tuple[int, dict | bytes]:
-    """Returns (status_code, parsed_json_or_bytes_if_not_json). No auth."""
+    """Returns (status_code, parsed_json_or_bytes_if_not_json). No auth.
+    5-minute timeout so long audit runs on the portal don't time out."""
     url = get_url() + path
     headers = {}
     data = None
@@ -369,7 +370,8 @@ def build_parser() -> argparse.ArgumentParser:
     src.add_argument("--contract", help="Path to .sol file")
     src.add_argument("--stdin", action="store_true", help="Read contract from stdin")
     a.add_argument("--name", default=None, help="Contract name (default: filename)")
-    a.add_argument("--timeout", type=int, default=180)
+    a.add_argument("--timeout", type=int, default=300,
+                   help="Per-request timeout in seconds (default: 300 = 5min)")
     a.add_argument("--json", action="store_true", help="Also print JSON metadata")
     a.set_defaults(func=cmd_audit)
 
@@ -380,7 +382,8 @@ def build_parser() -> argparse.ArgumentParser:
     af_src.add_argument("--contract", help="Path to .sol file")
     af_src.add_argument("--stdin", action="store_true", help="Read contract from stdin")
     af.add_argument("--name", default=None, help="Contract name (default: filename)")
-    af.add_argument("--timeout", type=int, default=180)
+    af.add_argument("--timeout", type=int, default=300,
+                    help="Per-request timeout in seconds (default: 300 = 5min)")
     af.add_argument("--json", action="store_true", help="Also print JSON metadata")
     af.set_defaults(func=cmd_audit_functions)
 
