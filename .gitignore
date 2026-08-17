@@ -1,0 +1,30 @@
+# Node.js deps for the call-graph tool
+node_modules/
+package-lock.json.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Local secrets / config
+.env
+.env.*
+*.local
+config.local.*
