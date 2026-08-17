@@ -34,6 +34,7 @@ Examples:
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -164,6 +165,55 @@ def _render_callees_sft(calls_tree):
     return out
 
 
+def post_audit_with_retry(
+    payload: dict,
+    *,
+    timeout: int,
+    rate_limit_wait_seconds: int,
+    request_fn=request,
+    sleep_fn=time.sleep,
+) -> tuple[int, dict | bytes, int]:
+    """POST one audit, automatically waiting and retrying portal 429s."""
+    attempts = 0
+    while True:
+        attempts += 1
+        status, body = request_fn(
+            "POST", "/v1/audit-anon", body=payload, timeout=timeout,
+        )
+        if status != 429:
+            return status, body, attempts
+        print(
+            f"Rate limit reached. Waiting {rate_limit_wait_seconds}s, then retrying "
+            f"{payload['contract']}.{payload['function']} (attempt {attempts + 1})...",
+            file=sys.stderr,
+        )
+        sleep_fn(rate_limit_wait_seconds)
+
+
+def display_audit_response(contract: str, function: str, status: int, body, *, print_fn=print) -> str:
+    """Print the complete model verdict or complete endpoint error without hiding it."""
+    print_fn(f"=== {contract}.{function} ===")
+    if status == 200 and isinstance(body, dict):
+        content = body.get("choices", [{}])[0].get("message", {}).get(
+            "content", "<no content>")
+        print_fn(content)
+        normalized = content.upper()
+        if "VULNERABLE" in normalized:
+            return "VULNERABLE"
+        if "SAFE" in normalized:
+            return "SAFE"
+        return "UNCLASSIFIED"
+
+    print_fn(f"HTTP {status}")
+    if isinstance(body, dict):
+        print_fn(json.dumps(body, indent=2, default=str))
+    elif isinstance(body, bytes):
+        print_fn(body.decode(errors="replace"))
+    else:
+        print_fn(str(body))
+    return "ERROR"
+
+
 def _audit_per_function(contract_name: str, contract_src: str, args) -> None:
     """Extract per-function data via the bundled JS call-graph tool, post each to /v1/audit-anon.
 
@@ -237,8 +287,7 @@ def _audit_per_function(contract_name: str, contract_src: str, args) -> None:
               file=sys.stderr)
 
     # ── Audit each function via /v1/audit-anon ──
-    vulnerable_count = 0
-    safe_count = 0
+    verdict_counts = {"VULNERABLE": 0, "SAFE": 0, "UNCLASSIFIED": 0, "ERROR": 0}
     for i, f in enumerate(funcs, 1):
         print(f"\n{'=' * 60}", file=sys.stderr)
         print(f"[{i}/{len(funcs)}] {f['function']}", file=sys.stderr)
@@ -250,35 +299,31 @@ def _audit_per_function(contract_name: str, contract_src: str, args) -> None:
             "source": f["source"],
             "calls": f["calls"],
         }
-
-        status, body = request(
-            "POST", "/v1/audit-anon",
-            body=payload, timeout=args.timeout,
+        status, body, attempts = post_audit_with_retry(
+            payload,
+            timeout=args.timeout,
+            rate_limit_wait_seconds=args.rate_limit_wait,
         )
-        if status == 200 and isinstance(body, dict):
-            content = body.get("choices", [{}])[0].get("message", {}).get(
-                "content", "<no content>")
-            print(f"=== {cname_for_post}.{f['function']} ===")
-            print(content)
-            if "VULNERABLE" in content.upper():
-                vulnerable_count += 1
-            elif "SAFE" in content.upper():
-                safe_count += 1
-            if args.json:
-                print(f"\n--- usage: {body.get('usage', {})} ---",
-                      file=sys.stderr)
-        else:
-            print(f"HTTP {status}", file=sys.stderr)
-            print_result(status, body)
-            if status == 429:
-                print(f"\n⛔ Rate limit hit. Skipping remaining functions.",
-                      file=sys.stderr)
-                break
+        if attempts > 1:
+            print(f"Completed after {attempts} attempts.", file=sys.stderr)
+
+        verdict = display_audit_response(
+            cname_for_post, f["function"], status, body,
+        )
+        verdict_counts[verdict] += 1
+        if args.json and isinstance(body, dict):
+            print(f"\n--- response metadata: {json.dumps(body.get('usage', {}), default=str)} ---",
+                  file=sys.stderr)
 
     print(f"\n{'=' * 60}", file=sys.stderr)
-    print(f"SUMMARY: {len(funcs)} function(s) audited, "
-          f"{vulnerable_count} VULNERABLE, {safe_count} SAFE",
-          file=sys.stderr)
+    print(
+        f"SUMMARY: {len(funcs)} function(s) processed; "
+        f"{verdict_counts['VULNERABLE']} VULNERABLE, "
+        f"{verdict_counts['SAFE']} SAFE, "
+        f"{verdict_counts['UNCLASSIFIED']} UNCLASSIFIED, "
+        f"{verdict_counts['ERROR']} ERROR",
+        file=sys.stderr,
+    )
     print(f"{'=' * 60}", file=sys.stderr)
 
 
@@ -338,6 +383,8 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--name", default=None, help="Contract name (default: filename)")
     a.add_argument("--timeout", type=int, default=300,
                    help="Per-request timeout in seconds (default: 300 = 5min)")
+    a.add_argument("--rate-limit-wait", type=int, default=61,
+                   help="Seconds to wait before retrying a 429 (default: 61)")
     a.add_argument("--json", action="store_true", help="Also print JSON metadata")
     a.set_defaults(func=cmd_audit)
 
@@ -350,6 +397,8 @@ def build_parser() -> argparse.ArgumentParser:
     af.add_argument("--name", default=None, help="Contract name (default: filename)")
     af.add_argument("--timeout", type=int, default=300,
                     help="Per-request timeout in seconds (default: 300 = 5min)")
+    af.add_argument("--rate-limit-wait", type=int, default=61,
+                    help="Seconds to wait before retrying a 429 (default: 61)")
     af.add_argument("--json", action="store_true", help="Also print JSON metadata")
     af.set_defaults(func=cmd_audit_functions)
 

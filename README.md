@@ -31,9 +31,8 @@ Ask your agent, e.g. *"audit this contract"* or *"is this Solidity safe?"* point
 
 ## Notes
 
-- **No setup, ever.** The portal URL is hardcoded and cannot be changed — the skill never asks for one.
-- Requires **Node.js** and **Python 3**.
-- Very large contracts may hit the portal's token cap; split the file first.
+- **Large batches are handled automatically.** Every function’s complete reasoning and verdict is printed; if a function cannot be processed, the full endpoint error is printed. On a 429, the CLI waits 61 seconds, retries the same safe request, and continues the contract. Use `--rate-limit-wait SECONDS` to override the delay.
+- Very large individual functions may still hit the portal's token cap; their complete error response is shown.
 
 ## License
 
