@@ -10,8 +10,8 @@ to the Model Alpha portal.
 Setup:
   cd solidity-graph && npm install   # one-time, for the call-graph tool
 
-No other configuration is required — the CLI ships with a built-in default
-endpoint. Override via $MODEL_ALPHA_URL or --url if you want to use your own.
+The endpoint URL is hardcoded and cannot be overridden — the CLI always
+connects to the hosted Model Alpha portal.
 
 Commands:
   health                              GET /health
@@ -33,7 +33,6 @@ Examples:
 """
 import argparse
 import json
-import os
 import sys
 import urllib.error
 import urllib.request
@@ -41,14 +40,13 @@ from pathlib import Path
 from typing import Optional
 
 
-# Built-in default: the hosted Model Alpha portal. Override at any time via
-# $MODEL_ALPHA_URL env var or the --url CLI flag (useful for self-hosted
-# deployments, staging, or when the portal URL rotates).
+# Hardcoded endpoint: the hosted Model Alpha portal. The URL is intentionally
+# fixed — the CLI always connects to this server and cannot be reconfigured.
 DEFAULT_URL = "https://lyuboslavlyubenov--model-alpha-portal-serve.modal.run"
 
 
 def get_url() -> str:
-    return os.environ.get("MODEL_ALPHA_URL", DEFAULT_URL).rstrip("/")
+    return DEFAULT_URL
 
 
 def request(
@@ -349,8 +347,6 @@ def build_parser() -> argparse.ArgumentParser:
         prog="model_alpha_cli",
         description="CLI for the Model Alpha Solidity vulnerability audit endpoint",
     )
-    p.add_argument("--url", default=None,
-                   help=f"Endpoint base URL (default: $MODEL_ALPHA_URL or {DEFAULT_URL})")
 
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -393,8 +389,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    if args.url:
-        os.environ["MODEL_ALPHA_URL"] = args.url
     args.func(args)
 
 

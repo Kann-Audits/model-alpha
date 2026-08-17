@@ -15,7 +15,7 @@ Audit a Solidity contract by:
 2. Sending each function (with its callees) to the hosted Model Alpha portal.
 3. Rendering the verdict (`VULNERABLE` / `SAFE`) back in the terminal.
 
-The skill ships the call-graph extractor and a CLI that connects to the hosted Model Alpha portal **out of the box — no configuration needed**. Override the URL via `$MODEL_ALPHA_URL` or `--url` if you want to point at your own deployment.
+The skill ships the call-graph extractor and a CLI that connects to the hosted Model Alpha portal **out of the box — no configuration needed**. The endpoint URL is hardcoded in the CLI and cannot be overridden.
 
 ## When to trigger
 
@@ -35,6 +35,31 @@ Do **not** trigger for: training, fine-tuning, dataset curation, or model quanti
 | `scripts/bootstrap.sh` | Installs the CLI to `~/.local/bin/model-alpha`. |
 | `solidity-graph/get_function_graph.js` | The call-graph extractor (uses `@solidity-parser/parser`). |
 | `solidity-graph/package.json` | npm dependency manifest. Run `npm install` once. |
+
+## Installing this skill
+
+From a terminal, clone and copy the skill into your agent's skills directory:
+
+```bash
+git clone https://github.com/Kann-Audits/model-alpha.git /tmp/model-alpha
+```
+
+Then copy into your agent's skills folder:
+
+| Agent | Install dir | Command |
+|---|---|---|
+| Claude | `~/.claude/skills/` | `mkdir -p ~/.claude/skills/model-alpha && cp -r /tmp/model-alpha/* ~/.claude/skills/model-alpha/` |
+| Codex | `~/.codex/skills/` | `mkdir -p ~/.codex/skills/model-alpha && cp -r /tmp/model-alpha/* ~/.codex/skills/model-alpha/` |
+| Hermes | `~/.hermes/skills/` | `mkdir -p ~/.hermes/skills/model-alpha && cp -r /tmp/model-alpha/* ~/.hermes/skills/model-alpha/` |
+| opencode | `~/.config/opencode/skills/` | `mkdir -p ~/.config/opencode/skills/model-alpha && cp -r /tmp/model-alpha/* ~/.config/opencode/skills/model-alpha/` |
+
+Then install the JS dependency once and restart your agent:
+
+```bash
+cd ~/.claude/skills/model-alpha/solidity-graph && npm install
+```
+
+The agent will then be able to audit contracts — no API keys or configuration required.
 
 ## Operating manual
 
@@ -105,7 +130,7 @@ The CLI renders this into the per-function audit payload.
 ## Pitfalls
 
 1. **Node.js is required.** The CLI shells out to `node -e` against the bundled `.js`. If `node` isn't installed, the CLI fails fast with a clear error.
-2. **The CLI ships with a built-in portal URL** — no env vars, no registration, no API key. Override at any time via `$MODEL_ALPHA_URL` or `--url` if you point your own deployment.
+2. **The CLI connects to the hosted portal URL, which is hardcoded.** It cannot be reconfigured — the CLI always talks to `https://lyuboslavlyubenov--model-alpha-portal-serve.modal.run`. If you get a connection error, run `model_alpha_cli health` to confirm the portal is reachable.
 3. **Empty `<fallback>` functions are skipped.** The JS tool may return a function entry with no source (e.g. for unresolved super-class calls). The CLI drops those silently rather than POSTing an empty `source` that the schema will reject.
 4. **Per-function calls are deduplicated by `(type, name)`.** The recursive tree may revisit the same callee through multiple paths — first occurrence wins, but recursion continues to surface transitive callees.
 5. **The CLI is stdlib-only.** It uses `urllib.request` for HTTP and `subprocess` for node. No pip install on the Python side.

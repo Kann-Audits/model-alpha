@@ -39,7 +39,7 @@ python3 scripts/model_alpha_cli.py audit --contract ./Vault.sol
 cat Vault.sol | python3 scripts/model_alpha_cli.py audit --stdin
 ```
 
-The CLI ships with a built-in default endpoint — no env vars or API keys needed. Override via `MODEL_ALPHA_URL` or `--url` if you point your own deployment.
+The CLI connects to the hosted Model Alpha portal out of the box — **no env vars, no API keys, no config**. The endpoint URL is hardcoded in the CLI and cannot be overridden.
 
 Output: one block per function with the assistant's reasoning + verdict. A summary line at the end:
 
@@ -80,22 +80,16 @@ For each function it returns:
 
 The CLI renders this into the per-function audit payload.
 
-## Use as an AI agent skill (Hermes, Claude, Codex)
+## Install as an AI agent skill (Claude, Codex, Hermes, opencode)
 
 ### 1. Clone
 
 ```bash
-git clone https://github.com/Kann-Audits/model-alpha-skill.git
-cd model-alpha-skill
+git clone https://github.com/Kann-Audits/model-alpha.git
+cd model-alpha
 ```
 
 ### 2. Install to your agent
-
-**Hermes** (`~/.hermes/skills/`):
-```bash
-mkdir -p ~/.hermes/skills/model-alpha
-cp -r ./* ~/.hermes/skills/model-alpha/
-```
 
 **Claude** (`~/.claude/skills/`):
 ```bash
@@ -109,15 +103,27 @@ mkdir -p ~/.codex/skills/model-alpha
 cp -r ./* ~/.codex/skills/model-alpha/
 ```
 
-All three at once:
+**Hermes** (`~/.hermes/skills/`):
 ```bash
-for AGENT_DIR in ~/.hermes/skills ~/.claude/skills ~/.codex/skills; do
+mkdir -p ~/.hermes/skills/model-alpha
+cp -r ./* ~/.hermes/skills/model-alpha/
+```
+
+**opencode** (`~/.config/opencode/skills/`):
+```bash
+mkdir -p ~/.config/opencode/skills/model-alpha
+cp -r ./* ~/.config/opencode/skills/model-alpha/
+```
+
+All at once:
+```bash
+for AGENT_DIR in ~/.claude/skills ~/.codex/skills ~/.hermes/skills ~/.config/opencode/skills; do
   mkdir -p "$AGENT_DIR/model-alpha"
   cp -r ./* "$AGENT_DIR/model-alpha/"
 done
 ```
 
-The agent reads `SKILL.md` to learn the operating manual.
+Restart your agent so it picks up the new skill. The agent reads `SKILL.md` to learn the operating manual.
 
 ### 3. Install dependencies
 
@@ -125,10 +131,12 @@ The agent reads `SKILL.md` to learn the operating manual.
 cd solidity-graph && npm install && cd ..
 ```
 
+You're done — no API keys or configuration. The skill connects straight to the hosted portal.
+
 ## Pitfalls
 
 1. **Node.js is required.** The CLI shells out to `node -e` against the bundled `.js`. Without node, the CLI fails fast with a clear error.
-2. **The CLI ships with a built-in portal URL** — zero configuration needed. Override at any time via `$MODEL_ALPHA_URL` or `--url` if you point your own deployment.
+2. **The CLI connects to the hosted portal URL, which is hardcoded.** It cannot be reconfigured — the CLI always talks to `https://lyuboslavlyubenov--model-alpha-portal-serve.modal.run`. If the portal is down or returns non-200, run `model_alpha_cli health` to confirm connectivity.
 3. **Empty `<fallback>` functions are skipped.** The JS tool may return a function entry with no source for unresolved super-class calls — the CLI drops those silently rather than POSTing an empty `source`.
 4. **Per-function calls are deduplicated by `(type, name)`.** The recursive tree may revisit the same callee through multiple paths — first occurrence wins, but recursion continues to surface transitive callees.
 5. **Output budget is dictated by the endpoint.** The CLI doesn't enforce `max_tokens` — large contracts may exceed the endpoint's advertised cap and return 413/400.

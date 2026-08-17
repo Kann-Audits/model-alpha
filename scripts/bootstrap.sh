@@ -47,5 +47,5 @@ echo "  model_alpha_cli health"
 echo "  model_alpha_cli audit-limits"
 echo "  model_alpha_cli audit-functions --contract ./Contract.sol"
 echo
-echo "No configuration needed — the CLI ships with a built-in default endpoint."
-echo "Override via MODEL_ALPHA_URL or --url to use your own deployment."
+echo "No configuration needed — the CLI connects to the hosted Model Alpha"
+echo "portal. The endpoint URL is hardcoded and cannot be changed."
