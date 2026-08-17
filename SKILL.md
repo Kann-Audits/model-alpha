@@ -1,13 +1,13 @@
 ---
-name: model-alpha-skill
-description: Audit a Solidity smart contract by extracting its call graph with the bundled JS tool and sending each function to a remote Model Alpha endpoint. Use when the user mentions "audit contract", "vulnerability detection", "Solidity review", "model-alpha", or "call graph".
+name: model-alpha
+description: Audit a Solidity smart contract by extracting its call graph with the bundled JS tool and sending each function to the hosted Model Alpha portal. Use when the user mentions "audit contract", "vulnerability detection", "Solidity review", "model-alpha", or "call graph".
 category: security
-version: 2.0.0
+version: 2.1.0
 author: Kann Audits
 tags: [security, solidity, vulnerability-detection, call-graph, smart-contracts, ai-agent]
 ---
 
-# model-alpha-skill
+# model-alpha
 
 Audit a Solidity contract by:
 
@@ -60,6 +60,21 @@ cd ~/.claude/skills/model-alpha/solidity-graph && npm install
 ```
 
 The agent will then be able to audit contracts — no API keys or configuration required.
+
+### Pointing an agent directly at this repo
+
+If your agent is configured to pull skills from a git repo URL (e.g. `https://github.com/Kann-Audits/model-alpha.git`), no copy step is needed — point it at this repo and it will find `SKILL.md` at the repo root. The skill name is `model-alpha`, which matches the directory this repo is expected to live in.
+
+For agents that only scan a local skills directory, symlink this repo in so `git pull` keeps the skill fresh:
+
+```bash
+# opencode / Claude Code / Codex / Hermes — pick your agent's dir:
+mkdir -p ~/.config/opencode/skills
+ln -s /path/to/model-alpha ~/.config/opencode/skills/model-alpha
+git -C /path/to/model-alpha pull   # after every update, no re-install needed
+```
+
+The one requirement: the folder that contains `SKILL.md` must be named `model-alpha` (agents match the skill name to its directory).
 
 ## Operating manual
 

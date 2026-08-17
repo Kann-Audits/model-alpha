@@ -133,6 +133,22 @@ cd solidity-graph && npm install && cd ..
 
 You're done — no API keys or configuration. The skill connects straight to the hosted portal.
 
+### Pointing an agent directly at this repo
+
+If your agent is configured to pull skills from a git URL, point it at `https://github.com/Kann-Audits/model-alpha.git` — `SKILL.md` lives at the repo root, and the skill name is `model-alpha` (it matches the directory this repo should be installed into).
+
+For agents that only scan a local skills folder, symlink the repo in so updates apply on the next `git pull`:
+
+```bash
+git clone https://github.com/Kann-Audits/model-alpha.git ~/model-alpha
+mkdir -p ~/.config/opencode/skills            # or ~/.claude/skills, ~/.codex/skills, ~/.hermes/skills
+ln -s ~/model-alpha ~/.config/opencode/skills/model-alpha
+cd ~/model-alpha/solidity-graph && npm install
+git -C ~/model-alpha pull                      # refresh the skill later
+```
+
+Requirement: the folder containing `SKILL.md` must be named `model-alpha` so the agent can match it to the skill.
+
 ## Pitfalls
 
 1. **Node.js is required.** The CLI shells out to `node -e` against the bundled `.js`. Without node, the CLI fails fast with a clear error.
